@@ -42,7 +42,7 @@ class LstmModel(BaseModel):
         plt.plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
 
     def save(self):
-        self.model.save(os.path.join('data', self.run_id, 'models',
+        self.model.save(os.path.join('data', self.run_id, 'models', 'LSTM',
                                      '{}_LSTM.h5'.format(replace_multiple(self.feat_id,
                                                                           ['/', '\\', ':', '?', '*', '"', '<', '>',
                                                                            '|'],
@@ -50,7 +50,7 @@ class LstmModel(BaseModel):
 
     def load(self):
         self.model = tf.keras.models.load_model(os.path.join('data', self.config['RUNTIME_PARAMS']['USE_ID'],
-                                                             'models',
+                                                             'models', 'LSTM',
                                                              '{}_LSTM.h5'.format(replace_multiple(self.feat_id,
                                                                                                   ['/', '\\', ':', '?',
                                                                                                    '*', '"', '<', '>',

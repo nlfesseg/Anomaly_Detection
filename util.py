@@ -4,6 +4,7 @@ import configparser
 import os
 
 import numpy as np
+from statsmodels.tsa.stattools import adfuller
 
 
 def multivariate_data(dataset, target, start_index, end_index, history_size,
@@ -36,7 +37,8 @@ def make_dirs(_id):
             raise ValueError(
                 "Run ID {} is not valid. If loading prior models or predictions, must provide valid ID.".format(_id))
 
-    paths = ['data', 'data/%s' % _id, 'data/%s/models' % _id, 'data/%s/scalars' % _id]
+    paths = ['data', 'data/%s' % _id, 'data/%s/models' % _id, 'data/%s/scalars' % _id, 'data/%s/models/VAR' % _id,
+             'data/%s/models/LSTM' % _id]
 
     for p in paths:
         if not os.path.isdir(p):
@@ -56,3 +58,45 @@ def replace_multiple(main_string, replaces, new_string):
             main_string = main_string.replace(elem, new_string)
 
     return main_string
+
+
+def adfuller_test(series, signif=0.05, name='', verbose=False):
+    """Perform ADFuller to test for Stationarity of given series and print report"""
+    r = adfuller(series, autolag='AIC')
+    output = {'test_statistic': round(r[0], 4), 'pvalue': round(r[1], 4), 'n_lags': round(r[2], 4), 'n_obs': r[3]}
+    p_value = output['pvalue']
+
+    def adjust(val, length=6):
+        return str(val).ljust(length)
+
+    # Print Summary
+    # print(f'    Augmented Dickey-Fuller Test on "{name}"', "\n   ", '-' * 47)
+    # print(f' Null Hypothesis: Data has unit root. Non-Stationary.')
+    # print(f' Significance Level    = {signif}')
+    # print(f' Test Statistic        = {output["test_statistic"]}')
+    # print(f' No. Lags Chosen       = {output["n_lags"]}')
+
+    # for key, val in r[4].items():
+    #     print(f' Critical value {adjust(key)} = {round(val, 3)}')
+
+    if p_value <= signif:
+        # print(f" => P-Value = {p_value}. Rejecting Null Hypothesis.")
+        # print(f" => Series is Stationary.")
+        return True
+    else:
+        # print(f" => P-Value = {p_value}. Weak evidence to reject the Null Hypothesis.")
+        # print(f" => Series is Non-Stationary.")
+        return False
+
+
+def invert_transformation(df_train, df_forecast, dif_times=2):
+    """Revert back the differencing to get the forecast to original scale."""
+    df_fc = df_forecast.copy()
+    columns = df_train.columns
+    for col in columns:
+        # Roll back 2nd Diff
+        if dif_times == 2:
+            df_fc[col] = (df_train[col].iloc[-1] - df_train[col].iloc[-2]) + df_fc[col].cumsum()
+        # Roll back 1st Diff
+        df_fc[col] = df_train[col].iloc[-1] + df_fc[col].cumsum()
+    return df_fc

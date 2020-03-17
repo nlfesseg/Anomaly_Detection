@@ -1,16 +1,20 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import tensorflow as tf
 import configparser
+
+from scipy.constants import alpha
 from sklearn.externals import joblib
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.vector_ar.vecm import coint_johansen
 import os
 import pandas as pd
 from sklearn.linear_model import LassoCV
 from sklearn.preprocessing import MinMaxScaler
 
-from util import multivariate_data, replace_multiple
+from util import multivariate_data, replace_multiple, adfuller_test
 
 
 class Feature:
@@ -23,12 +27,14 @@ class Feature:
         self.train_multi = None
         self.val_multi = None
         self.x_train_multi = None
+        self.df_differenced = None
         self.y_train_multi = None
         self.x_val_multi = None
         self.y_val_multi = None
         self.x_val_multi_split = None
         self.y_val_multi_split = None
         self.y_pred = None
+        self.dif_times = 0
         self.features_considered_ids = None
 
         if not self.config['RUNTIME_PARAMS'].getboolean('TRAIN'):
@@ -48,6 +54,26 @@ class Feature:
         column_loc = dataset.columns.get_loc(self.id)
         self.train_multi = dataset.iloc[:(int(self.config['LSTM_PARAMS']['TRAIN_SPLIT'])
                                           + int(self.config['LSTM_PARAMS']['PAST_HISTORY']))]
+        df_stationary = True
+        self.df_differenced = dataset
+        for name, column in self.df_differenced.iteritems():
+            col_stationary = adfuller_test(column, name=column.name)
+            print('\n')
+            if not col_stationary:
+                df_stationary = col_stationary
+                self.df_differenced = self.df_differenced.diff().dropna()
+                self.dif_times = 1
+                break
+
+        if not df_stationary:
+            for name, column in self.df_differenced.iteritems():
+                col_stationary = adfuller_test(column, name=column.name)
+                print('\n')
+                if not col_stationary:
+                    self.df_differenced = self.df_differenced.diff().dropna()
+                    self.dif_times = 2
+                    break
+
         self.val_multi = dataset.iloc[(int(self.config['LSTM_PARAMS']['TRAIN_SPLIT'])
                                        + int(self.config['LSTM_PARAMS']['PAST_HISTORY'])):]
         dataset = dataset.values
