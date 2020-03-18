@@ -1,20 +1,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import tensorflow as tf
-import configparser
 
-from scipy.constants import alpha
-from sklearn.externals import joblib
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.vector_ar.vecm import coint_johansen
+import configparser
 import os
+
 import pandas as pd
+import numpy as np
+from sklearn.externals import joblib
 from sklearn.linear_model import LassoCV
 from sklearn.preprocessing import MinMaxScaler
 
-from util import multivariate_data, replace_multiple, adfuller_test
+from util import multivariate_data, replace_multiple, adfuller_test, cointegration_test
 
 
 class Feature:
@@ -61,7 +56,7 @@ class Feature:
             print('\n')
             if not col_stationary:
                 df_stationary = col_stationary
-                self.df_differenced = self.df_differenced.diff().dropna()
+                self.df_differenced = self.df_differenced.diff().fillna(0)
                 self.dif_times = 1
                 break
 
@@ -70,12 +65,13 @@ class Feature:
                 col_stationary = adfuller_test(column, name=column.name)
                 print('\n')
                 if not col_stationary:
-                    self.df_differenced = self.df_differenced.diff().dropna()
+                    self.df_differenced = self.df_differenced.diff().fillna(0)
                     self.dif_times = 2
                     break
 
         self.val_multi = dataset.iloc[(int(self.config['LSTM_PARAMS']['TRAIN_SPLIT'])
                                        + int(self.config['LSTM_PARAMS']['PAST_HISTORY'])):]
+        self.val_multi.index = np.arange(len(self.val_multi))
         dataset = dataset.values
         self.x_train_multi, self.y_train_multi = multivariate_data(dataset, dataset[:, column_loc], 0,
                                                                    int(self.config['LSTM_PARAMS']['TRAIN_SPLIT']),

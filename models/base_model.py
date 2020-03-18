@@ -2,7 +2,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import configparser
 from abc import abstractmethod, ABCMeta
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from keras.losses import mean_absolute_error, mean_squared_error
@@ -46,10 +46,14 @@ class BaseModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def result(self, feature, model):
+    def result(self, feature, model_type):
         mse = mean_squared_error(feature.val_multi[feature.id], self.y_pred[feature.id])
         mae = mean_absolute_error(feature.val_multi[feature.id], self.y_pred[feature.id])
         rmse = np.sqrt(mse)
+
+        plt.plot(self.y_pred[feature.id])
+        plt.plot(feature.val_multi[feature.id])
+        plt.show()
 
         df_aler = pd.DataFrame()
         df_aler['real_value'] = feature.val_multi[feature.id]
@@ -79,6 +83,6 @@ class BaseModel(metaclass=ABCMeta):
 
         output = {'rmse': rmse, 'mse': mse, 'mae': mae, 'present_status': exists_anom_last_5,
                       'present_alerts': df_aler_ult.fillna(0).to_dict(orient='record'),
-                      'past': df_aler.to_dict(orient='record'), 'model': model}
+                      'past': df_aler.to_dict(orient='record'), 'model': model_type}
         # var_output['future'] = df_result_forecast.fillna(0).to_dict(orient='record')
         return output
