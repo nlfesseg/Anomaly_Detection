@@ -3,10 +3,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import configparser
 from datetime import datetime as dt
 import pandas as pd
-
+import matplotlib.pyplot as plt
 from feature import Feature
 from models.lstm_model import LstmModel
-from util import make_dirs
+from util import make_dirs, adfuller_test
 from models.var_model import VarModel
 
 df = pd.read_csv("out.csv")
@@ -37,26 +37,27 @@ def run():
         if config['RUNTIME_PARAMS'].getboolean('PREDICT'):
             try:
                 pass
-                # lstm_model = LstmModel(feature, id)
+                lstm_model = LstmModel(feature, id)
                 # feature_lstm = lstm_model.batch_predict(feature)
-                # result = lstm_model.result(feature_lstm)
+                lstm_model.predict(feature)
+                # result = super(LstmModel, lstm_model).result(feature_lstm, 'LSTM')
             except Exception as e:
                 print(e)
                 print('ERROR: exception executing LSTM')
-
-            var_model = VarModel(feature, id)
-            feature_var = var_model.predict(feature)
-            result = super(VarModel, var_model).result(feature_var, 'VAR')
-            print(result)
+            # try:
+            #     pass
+            #     var_model = VarModel(feature, id)
+            #     feature_var = var_model.predict(feature)
+            #     # result = super(VarModel, var_model).result(feature_var, 'VAR')
+            #     # print(result)
+            # except Exception as e:
+            #     print(e)
+            #     print('ERROR: exception executing VAR')
 
         # predicted_df = pd.DataFrame()
         # predicted_df['actuals'] = feature.y_val_multi[:, 0]
         # predicted_df['predicted'] = feature.y_pred
         # predicted_df.reset_index(inplace=True)
-
-        # errors = Error(feature, id)
-        # errorframe = errors.detect_anomalies(feature)
-        # plot_anomaly(errorframe, "metric_name")
 
 
 run()

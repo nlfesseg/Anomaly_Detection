@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import tensorflow as tf
 from keras.callbacks import History, EarlyStopping
-
-import plotter as plt
+import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -39,7 +39,7 @@ class LstmModel(BaseModel):
                                             callbacks=cbs,
                                             validation_data=(feature.x_val_multi, feature.y_val_multi))
 
-        plt.plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
+        # plt.plot_train_history(multi_step_history, 'Multi-Step Training and validation loss')
 
     def save(self):
         self.model.save(os.path.join('data', self.run_id, 'models', 'LSTM',
@@ -58,42 +58,50 @@ class LstmModel(BaseModel):
                                                                                                   "x"))))
 
     def predict(self, feature):
-        predictions = []
-        for i in range(int(len(feature.x_val_multi) / 10)):
-            index = i * 10
-            n_input = feature.x_val_multi[index].reshape(1, feature.x_val_multi[index].shape[0],
-                                                         feature.x_val_multi[index].shape[1])
-            prediction = self.model.predict(n_input)[0]
-            predictions.append(prediction)
+        plt.ion()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i in range(1, len(feature.x_val_multi)):
+            n_input = feature.x_val_multi[i].reshape(1, feature.x_val_multi[i].shape[0],
+                                                     feature.x_val_multi[i].shape[1])
+            forecast = self.model.predict(n_input).reshape(-1, 1)
+            forecast = feature.scalar.inverse_transform(forecast)
 
-        predictions = np.concatenate(np.array(predictions))
-        actual = np.reshape(feature.y_val_multi[0: -4, 0])
-        plt.multi_step_plot(actual, predictions, feature.scalar)
-        # plt.multi_step_plot(feature.x_val_multi[index][:, -1], feature.y_val_multi[index],
-        #                     self.model.predict(n_input)[0],
-        #                     feature.scalar)
+            history = np.array(feature.x_val_multi[i]).reshape(-1, 1)
+            history = feature.scalar.inverse_transform(history)
 
-    def aggregate_predictions(self, y_pred_batch, method='first'):
-        agg_y_pred_batch = np.array([])
+            actual = feature.y_val_multi[i].reshape(-1, 1)
+            actual = feature.scalar.inverse_transform(actual)
+            # plt.multi_step_plot(history, actual, forecast)
+            x = np.arange(len(forecast) + len(history))
+            ax.plot(x[:len(history)], history, c='blue')
+            # plt.plot(x[-len(prediction):], prediction, c='red')
+            ax.plot(x[len(history):(len(history) + len(forecast))], forecast, c='red')
+            ax.plot(x[len(history):(len(history) + len(actual))], actual, c='green')
+            plt.show()
+            plt.close(fig)
 
-        for t in range(len(y_pred_batch)):
+    def aggregate_predictions(self, y_hat_batch, method='first'):
+        agg_y_hat_batch = np.array([])
+
+        for t in range(len(y_hat_batch)):
 
             start_idx = t - int(self.config['LSTM_PARAMS']['FUTURE_TARGET'])
             start_idx = start_idx if start_idx >= 0 else 0
 
-            y_pred_t = np.flipud(y_pred_batch[start_idx:t + 1]).diagonal()
+            y_hat_t = np.flipud(y_hat_batch[start_idx:t + 1]).diagonal()
 
             if method == 'first':
-                agg_y_pred_batch = np.append(agg_y_pred_batch, [y_pred_t[0]])
+                agg_y_hat_batch = np.append(agg_y_hat_batch, [y_hat_t[0]])
             elif method == 'mean':
-                agg_y_pred_batch = np.append(agg_y_pred_batch, np.mean(y_pred_t))
+                agg_y_hat_batch = np.append(agg_y_hat_batch, np.mean(y_hat_t))
 
-        agg_y_pred_batch = agg_y_pred_batch.reshape(len(agg_y_pred_batch), 1)
-        self.y_pred = np.append(self.y_pred, agg_y_pred_batch)
+        agg_y_hat_batch = agg_y_hat_batch.reshape(len(agg_y_hat_batch), 1)
+        self.y_hat = np.append(self.y_hat, agg_y_hat_batch)
 
     def batch_predict(self, feature):
         feature.x_val_multi = np.concatenate((feature.x_val_multi, feature.x_val_multi_split), axis=0)
-        temp_array = np.repeat(feature.y_val_multi[-1], int(self.config['LSTM_PARAMS']['FUTURE_TARGET']))\
+        temp_array = np.repeat(feature.y_val_multi[-1], int(self.config['LSTM_PARAMS']['FUTURE_TARGET'])) \
             .reshape(-1, int(self.config['LSTM_PARAMS']['FUTURE_TARGET']))
         feature.y_val_multi = np.concatenate((feature.y_val_multi, temp_array), axis=0)
         num_batches = int((feature.y_val_multi.shape[0] - int(self.config['LSTM_PARAMS']['PAST_HISTORY']))
@@ -109,12 +117,17 @@ class LstmModel(BaseModel):
                 idx = feature.y_val_multi.shape[0]
 
             x_val_batch = feature.x_val_multi[prior_idx:idx]
-            y_pred_batch = self.model.predict(x_val_batch)
-            self.aggregate_predictions(y_pred_batch)
+            y_hat_batch = self.model.predict(x_val_batch)
+            self.aggregate_predictions(y_hat_batch)
 
-        self.y_pred = np.reshape(self.y_pred, (self.y_pred.size,))
+        # last_observation = feature.x_val_multi[-30]
+        # forecast = self.model.predict(last_observation.reshape(1, last_observation.shape[0], last_observation.shape[1]))
+        # self.y_hat = np.concatenate((self.y_hat, forecast.flatten()), axis=0)
+        #
+        # self.y_hat = pd.DataFrame(data=self.y_hat,
+        #                           columns=[self.feat_id])
 
-        feature.y_pred = self.y_pred
+        feature.y_hat = self.y_hat
         return feature
 
     def result(self, feature, model):

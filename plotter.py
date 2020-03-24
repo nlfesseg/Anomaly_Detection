@@ -26,15 +26,14 @@ import numpy as np
 #     plt.legend(loc='upper left')
 #     plt.show()
 
-def multi_step_plot(actual, prediction, scalar):
-    actual = np.array(actual).reshape(-1, 1)
-    actual = scalar.inverse_transform(actual)
-
-    prediction = np.array(prediction).reshape(-1, 1)
-    prediction = scalar.inverse_transform(prediction)
-    plt.plot(actual)
-    plt.plot(prediction)
-    plt.show()
+def multi_step_plot(history, actual, prediction):
+    print(1)
+    # x = np.arange(len(prediction) + len(history))
+    # plt.plot(x[:len(history)], history, c='blue')
+    # # plt.plot(x[-len(prediction):], prediction, c='red')
+    # plt.plot(x[len(history):(len(history) + len(prediction))], prediction, c='red')
+    # plt.plot(x[len(history):(len(history) + len(actual))], actual, c='green')
+    # plt.draw()
 
 
 def plot_train_history(history, title):

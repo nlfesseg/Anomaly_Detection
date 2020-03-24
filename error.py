@@ -10,12 +10,12 @@ class Error:
         self.config.read('config.ini')
         self.run_id = run_id
         # check = feature.y_val_multi[:, 0]
-        self.raw_errors = list(abs(feature.y_pred - feature.y_val_multi[:, 0]))
+        self.raw_errors = list(abs(feature.y_hat - feature.y_val_multi[:, 0]))
 
         smoothing_window = int(self.config['LSTM_PARAMS']['BATCH_SIZE'])
-        if not len(feature.y_pred) == len(feature.y_val_multi):
-            raise ValueError('len(y_pred) != len(y_val_multi): {}, {}'
-                             .format(len(feature.y_pred), len(feature.y_val_multi)))
+        if not len(feature.y_hat) == len(feature.y_val_multi):
+            raise ValueError('len(y_hat) != len(y_val_multi): {}, {}'
+                             .format(len(feature.y_hat), len(feature.y_val_multi)))
 
         self.smoothed_errors = pd.DataFrame(self.raw_errors)\
             .ewm(span=smoothing_window).mean().values.flatten()
@@ -27,7 +27,7 @@ class Error:
     def detect_anomalies(self, feature):
         df = pd.DataFrame()
         df['actuals'] = feature.y_val_multi[:, 0]
-        df['predicted'] = feature.y_pred
+        df['predicted'] = feature.y_hat
         df['error'] = self.raw_errors
         df['percentage_change'] = (self.raw_errors / feature.y_val_multi[:, 0]) * 100
         df['meanval'] = self.smoothed_errors

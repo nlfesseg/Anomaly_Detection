@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from keras.losses import mean_absolute_error, mean_squared_error
 
+from plotter import multi_step_plot
+
 
 class BaseModel(metaclass=ABCMeta):
     @abstractmethod
@@ -16,18 +18,18 @@ class BaseModel(metaclass=ABCMeta):
         self.feat_id = feature.id
         self.run_id = run_id
         self.model = None
-        self.y_pred = np.array([])
+        self.y_hat = np.array([])
 
-        if not self.config['RUNTIME_PARAMS'].getboolean('TRAIN'):
+        if not self.config['RUNTIME_PARAMS'].getboolean('PREDICT'):
             try:
                 self.load()
             except FileNotFoundError:
                 self.train(feature)
-                self.save()
+                # self.save()
 
         else:
             self.train(feature)
-            self.save()
+            # self.save()
 
     @abstractmethod
     def train(self, feature):
@@ -47,19 +49,28 @@ class BaseModel(metaclass=ABCMeta):
 
     @abstractmethod
     def result(self, feature, model_type):
-        mse = mean_squared_error(feature.val_multi[feature.id], self.y_pred[feature.id])
-        mae = mean_absolute_error(feature.val_multi[feature.id], self.y_pred[feature.id])
+        mse = mean_squared_error(feature.val_multi[feature.id],
+                                 self.y_hat[feature.id].iloc[:int(int(self.config['LSTM_PARAMS']['FUTURE_TARGET']) / 2)])
+        mae = mean_absolute_error(feature.val_multi[feature.id],
+                                  self.y_hat[feature.id].iloc[:int(int(self.config['LSTM_PARAMS']['FUTURE_TARGET']) / 2)])
         rmse = np.sqrt(mse)
 
-        plt.plot(self.y_pred[feature.id])
-        plt.plot(feature.val_multi[feature.id])
-        plt.show()
+        history = feature.train_multi.iloc[-int(self.config['LSTM_PARAMS']['PAST_HISTORY']):]
+        history = feature.scalar.inverse_transform(history)
+
+        # true_future = np.array(true_future).reshape(-1, 1)
+        true_future = feature.scalar.inverse_transform(feature.val_multi)
+
+        # prediction = np.array(prediction).reshape(-1, 1)
+        prediction = feature.scalar.inverse_transform(self.y_hat)
+
+        multi_step_plot(history, true_future, prediction)
 
         df_aler = pd.DataFrame()
         df_aler['real_value'] = feature.val_multi[feature.id]
-        df_aler['expected value'] = self.y_pred[feature.id]
+        df_aler['expected value'] = self.y_hat[feature.id].iloc[:-int(self.config['LSTM_PARAMS']['FUTURE_TARGET'])]
         df_aler['mse'] = mse
-        df_aler['points'] = self.y_pred.index
+        df_aler['points'] = self.y_hat.index
         df_aler.set_index('points', inplace=True)
         df_aler['mae'] = mae
 
@@ -82,7 +93,7 @@ class BaseModel(metaclass=ABCMeta):
             exists_anom_last_5 = 'TRUE'
 
         output = {'rmse': rmse, 'mse': mse, 'mae': mae, 'present_status': exists_anom_last_5,
-                      'present_alerts': df_aler_ult.fillna(0).to_dict(orient='record'),
-                      'past': df_aler.to_dict(orient='record'), 'model': model_type}
+                  'present_alerts': df_aler_ult.fillna(0).to_dict(orient='record'),
+                  'past': df_aler.to_dict(orient='record'), 'model': model_type}
         # var_output['future'] = df_result_forecast.fillna(0).to_dict(orient='record')
         return output
