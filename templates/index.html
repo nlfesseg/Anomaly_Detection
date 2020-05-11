@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Anomaly Detection</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-select.min.css" rel="stylesheet">
+    <!-- Custom styles for this template -->
+    <link href="/static/css/style.css" rel="stylesheet">
+
+    <script src="{{ url_for('static', filename='node_modules/chart.js/dist/Chart.min.js') }}"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-core.min.js"></script>
+    <script src="https://cdn.anychart.com/releases/8.7.1/js/anychart-heatmap.min.js"></script>
+
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap-select.min.js"></script>
+
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/chart.js"></script>
+</head>
+
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <img src="/static/img/logo.svg" class="navbar-brand" href="#">
+        </div>
+
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a>Help</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li class="active">
+                    <a data-toggle="collapse" data-target="#dropdown1" class="sidenav-header">Dataset</a>
+                    <div id="dropdown1" aria-expanded="true" class="custom-dropdown collapse in">
+                        <div class="form-group">
+                            <label for="SelectCSVFile">CSV file</label>
+                            <select class="selectpicker form-control" id="SelectCSVFile">
+                                {% for csv_file in csv_files %}
+                                    <option value="{{ csv_file }}">{{ csv_file }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="LoadButton">Load</button>
+                    </div>
+                </li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li class="active">
+                    <a data-toggle="collapse" data-target="#dropdown2" class="sidenav-header">Features</a>
+                    <div id="dropdown2" aria-expanded="true" class="custom-dropdown collapse in">
+                        <div class="form-group">
+                            <label for="SelectRun">Run file</label>
+                            <select class="selectpicker form-control" id="SelectRun" disabled>
+                                {% for run in runs %}
+                                    <option value="{{ run }}">{{ run }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="SelectFeatures">Feature select</label>
+                            <select class="selectpicker form-control" id="SelectFeatures" multiple disabled>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="TrainButton" disabled>Train</button>
+                        <button class="btn btn-danger" id="DeleteButton" disabled style="float: right">Delete</button>
+                    </div>
+                </li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li class="active">
+                    <a data-toggle="collapse" data-target="#dropdown3" class="sidenav-header">Configuration</a>
+                    <div id="dropdown3" aria-expanded="true" class="custom-dropdown collapse in">
+                        <div class="small-form-group form-group" style="float: left">
+                            <label for="InputPastHistory">Past History</label>
+                            <input type="number" min="1" class="form-control" id="InputPastHistory" disabled>
+                        </div>
+                        <div class="small-form-group form-group" style="float: right">
+                            <label for="InputFutureTarget">Future Target</label>
+                            <input type="number" min="1" class="form-control" id="InputFutureTarget" disabled>
+                        </div>
+                        <div class="small-form-group form-group" style="float: left">
+                            <label for="InputStepSize">Step Size</label>
+                            <input type="number" min="1" class="form-control" id="InputStepSize" disabled>
+                        </div>
+                        <div class="small-form-group form-group" style="float: right">
+                            <label for="InputViewHistory">View History</label>
+                            <input type="number" min="1" class="form-control" id="InputViewHistory" disabled>
+                        </div>
+                        <button class="btn btn-primary" id="ResetButton" disabled>Reset
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li class="active">
+                    <a data-toggle="collapse" data-target="#dropdown4" class="sidenav-header">MQTT</a>
+                    <div id="dropdown4" aria-expanded="true" class="custom-dropdown collapse in">
+                        <div class="small-form-group form-group" style="float: left">
+                            <label for="InputMQTTBrokerAddress">Broker Address</label>
+                            <input class="form-control" id="InputMQTTBrokerAddress" >
+                        </div>
+                        <div class="small-form-group form-group" style="float: right">
+                            <label for="InputMQTTPort">Port</label>
+                            <input type="number" class="form-control" id="InputMQTTPort" >
+                        </div>
+                        <div class="small-form-group form-group" style="float: left">
+                            <label for="InputMQTTUsername">Username</label>
+                            <input class="form-control" id="InputMQTTUsername" >
+                        </div>
+                        <div class="small-form-group form-group" style="float: right">
+                            <label for="InputMQTTPassword">Password</label>
+                            <input class="form-control" id="InputMQTTPassword" >
+                        </div>
+                        <button class="btn btn-success" id="MQTTConnectionButton">Connect
+                        </button>
+                    </div>
+                </li>
+            </ul>
+            <ul class="nav nav-sidebar">
+                <li class="active">
+                    <a data-toggle="collapse" data-target="#dropdown5" class="sidenav-header">Forecast</a>
+                    <div id="dropdown5" aria-expanded="true" class="custom-dropdown collapse in">
+                        <div class="form-group">
+                            <label for="TextAreaError">Errors</label>
+                            <textarea rows="8" class="form-control" id="TextAreaError" readonly
+                                      style="resize: none"></textarea>
+                        </div>
+                        <button class="btn btn-primary" id="CorrelationButton" disabled>View Correlation</button>
+                        <button class="btn btn-success" id="RunButton" style="float: right" disabled>Run</button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" id="dashboard">
+        </div>
+    </div>
+</div>
+</body>
+</html>
