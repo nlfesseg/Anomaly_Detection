@@ -118,9 +118,8 @@ def stop_running():
 def run(args):
     run_id = args['run_id']
     feature_ids = args['feature_ids']
-    view_history = int(args['view_history'])
     session['detector'].selected_feature_ids = feature_ids
-    session['detector'].load(run_id, view_history)
+    session['detector'].load(run_id)
     path = os.path.join('data', session['detector'].filename)
     if not path in observers:
         observers[path] = {}
@@ -138,9 +137,10 @@ def run(args):
 
 
 @socketio.on('predict')
-def predict():
+def predict(args):
     if session['detector'].update():
-        results = session['detector'].predict()
+        results = session['detector'].predict(int(args['view_history']), int(args['past_history']),
+                                              int(args['future_target']))
         emit('result_response', {'data': results}, room=request.sid)
 
 

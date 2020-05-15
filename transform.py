@@ -1,12 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-from math import sqrt
-
 import numpy as np
-import pandas as pd
-from pyod.models.knn import KNN
-from sklearn.linear_model import LassoCV
-from sklearn.preprocessing import MinMaxScaler
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 
@@ -88,21 +82,21 @@ def cointegration_test(df, alpha=0.05):
         print(adjust(col), ':: ', adjust(round(trace, 2), 9), ">", adjust(cvt, 8), ' =>  ', trace > cvt)
 
 
-def lasso(dataset, target_id):
-    x = dataset.drop(target_id, axis=1)  # Feature Matrix
-    y = dataset[target_id]  # Target Variable
-    reg = LassoCV(cv=5)
-    reg.fit(x, y)
-    print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
-    print("Best score using built-in LassoCV: %f" % reg.score(x, y))
-    coef = pd.Series(reg.coef_, index=x.columns)
-
-    print(
-        "Lasso picked " + str(sum(coef != 0)) + " variables and eliminated the other " +
-        str(sum(coef == 0)) + " variables")
-    x = list(coef[coef != 0].index)
-    x.insert(0, y.name)
-    return x
+# def lasso(dataset, target_id):
+#     x = dataset.drop(target_id, axis=1)  # Feature Matrix
+#     y = dataset[target_id]  # Target Variable
+#     reg = LassoCV(cv=5)
+#     reg.fit(x, y)
+#     print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
+#     print("Best score using built-in LassoCV: %f" % reg.score(x, y))
+#     coef = pd.Series(reg.coef_, index=x.columns)
+#
+#     print(
+#         "Lasso picked " + str(sum(coef != 0)) + " variables and eliminated the other " +
+#         str(sum(coef == 0)) + " variables")
+#     x = list(coef[coef != 0].index)
+#     x.insert(0, y.name)
+#     return x
 
 
 def pearson(dataset, target_id):
@@ -124,22 +118,5 @@ def pearson(dataset, target_id):
             y_correlated_features = y_cor_target[y_cor_target > 0.5].index[1]
             correlated_features = correlated_features.drop([y_correlated_features])
     return relevant_features
-
-
-def anomaly_detection(dataset, tail, target_id, scale=True):
-    if scale:
-        scalar = MinMaxScaler(feature_range=(0, 1))
-        scaled_dataset = scalar.fit_transform(dataset.values)
-        scaled_tail = scalar.transform(tail.values)
-    outliers_fraction = 0.01
-    clf = KNN(contamination=outliers_fraction, n_neighbors=round(sqrt(len(dataset))))
-    clf.fit(scaled_dataset)
-    y_pred = clf.predict(scaled_tail)
-    n_inliers = len(y_pred) - np.count_nonzero(y_pred)
-    n_outliers = np.count_nonzero(y_pred == 1)
-    df = pd.DataFrame()
-    df['outlier'] = y_pred.tolist()
-    df['value'] = tail[target_id].values
-    return df
 
 

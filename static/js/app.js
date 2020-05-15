@@ -23,7 +23,20 @@ $(document).ready(function () {
     });
 
     socket.on('modified_event_response', function () {
-        socket.emit('predict')
+        if ($("#InputViewHistory").val() === "") {
+            $("#InputViewHistory").val(0);
+        }
+        if ($("#InputPastHistory").val() === "" || $("#InputPastHistory").val() == 0) {
+            $("#InputPastHistory").val(1);
+        }
+        if ($("#InputFutureTarget").val() === "" || $("#InputFutureTarget").val() == 0) {
+            $("#InputFutureTarget").val(1);
+        }
+        socket.emit('predict', {
+            view_history: $("#InputViewHistory").val(),
+            past_history: $("#InputPastHistory").val(),
+            future_target: $("#InputFutureTarget").val()
+        });
     });
 
     socket.on('csv_response', function () {
@@ -181,14 +194,9 @@ $(document).ready(function () {
             $("#RunButton").html("Stop");
             $("#RunButton").off('click').on('click', stop_run);
             create_charts($("#SelectFeatures").val());
-
-            if ($("#InputViewHistory").val() === "") {
-                $("#InputViewHistory").val(0);
-            }
             socket.emit('run', {
                 run_id: $("#SelectRun").val(),
                 feature_ids: desired_option,
-                view_history: $("#InputViewHistory").val()
             })
         }
     }
@@ -204,18 +212,10 @@ $(document).ready(function () {
         $("#TrainButton").removeClass('btn-primary').addClass('btn-danger');
         $("#TrainButton").html("Stop");
         $("#TrainButton").off('click').on('click', stop_train);
-        if ($("#InputPastHistory").val() === "" || $("#InputPastHistory").val() == 0) {
-            $("#InputPastHistory").val(1);
-        }
-        if ($("#InputFutureTarget").val() === "" || $("#InputFutureTarget").val() == 0) {
-            $("#InputFutureTarget").val(1);
-        }
         if ($("#InputStepSize").val() === "" || $("#InputStepSize").val() == 0) {
             $("#InputStepSize").val(1);
         }
         socket.emit('train', {
-            past_history: $('#InputPastHistory').val(),
-            future_target: $('#InputFutureTarget').val(),
             step_size: $('#InputStepSize').val(),
         })
     }
@@ -276,8 +276,6 @@ $(document).ready(function () {
     }
 
     function reset_config() {
-        $("#InputPastHistory").val(config['FORECAST_PARAMS'].past_history);
-        $("#InputFutureTarget").val(config['FORECAST_PARAMS'].future_target);
         $("#InputStepSize").val(config['FORECAST_PARAMS'].step_size);
         disable_run_button(false)
     }

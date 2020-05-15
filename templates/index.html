@@ -40,7 +40,7 @@
 
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-right">
-                <li><a>Help</a></li>
+                <li><a data-toggle="modal" data-target="#ModalLong">Help</a></li>
             </ul>
         </div>
     </div>
@@ -57,7 +57,7 @@
                             <label for="SelectCSVFile">CSV file</label>
                             <select class="selectpicker form-control" id="SelectCSVFile">
                                 {% for csv_file in csv_files %}
-                                    <option value="{{ csv_file }}">{{ csv_file }}</option>
+                                <option value="{{ csv_file }}">{{ csv_file }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -73,7 +73,7 @@
                             <label for="SelectRun">Run file</label>
                             <select class="selectpicker form-control" id="SelectRun" disabled>
                                 {% for run in runs %}
-                                    <option value="{{ run }}">{{ run }}</option>
+                                <option value="{{ run }}">{{ run }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -118,19 +118,19 @@
                     <div id="dropdown4" aria-expanded="true" class="custom-dropdown collapse in">
                         <div class="small-form-group form-group" style="float: left">
                             <label for="InputMQTTBrokerAddress">Broker Address</label>
-                            <input class="form-control" id="InputMQTTBrokerAddress" >
+                            <input class="form-control" id="InputMQTTBrokerAddress">
                         </div>
                         <div class="small-form-group form-group" style="float: right">
                             <label for="InputMQTTPort">Port</label>
-                            <input type="number" class="form-control" id="InputMQTTPort" >
+                            <input type="number" class="form-control" id="InputMQTTPort">
                         </div>
                         <div class="small-form-group form-group" style="float: left">
                             <label for="InputMQTTUsername">Username</label>
-                            <input class="form-control" id="InputMQTTUsername" >
+                            <input class="form-control" id="InputMQTTUsername">
                         </div>
                         <div class="small-form-group form-group" style="float: right">
                             <label for="InputMQTTPassword">Password</label>
-                            <input class="form-control" id="InputMQTTPassword" >
+                            <input class="form-control" id="InputMQTTPassword">
                         </div>
                         <button class="btn btn-success" id="MQTTConnectionButton">Connect
                         </button>
@@ -156,5 +156,23 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="ModalLong" tabindex="-1" role="dialog" aria-labelledby="ModalLongTitle"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="ModalLongTitle">Instructions</h3>
+            </div>
+            <div class="modal-body">
+                ...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

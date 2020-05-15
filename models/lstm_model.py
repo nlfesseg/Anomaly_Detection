@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import configparser
 import os
 
 import tensorflow as tf
@@ -11,9 +12,11 @@ from transform import replace_multiple, multivariate_data
 
 class LstmModel(BaseModel):
     def __init__(self, feat_id, run_id, dataset=None):
+        self.config = configparser.ConfigParser()
         super().__init__(feat_id, run_id, dataset)
 
     def train(self, dataset):
+        self.config.read(os.path.join('temp', self.run_id, 'config', 'config.ini'))
         x_train_multi, y_train_multi = self.shape_data(dataset)
         cbs = [History(), EarlyStopping(monitor='loss',
                                         patience=int(self.config['LSTM_PARAMS']['PATIENCE']),
@@ -45,6 +48,7 @@ class LstmModel(BaseModel):
                                                                           "x"))))
 
     def load(self):
+        self.config.read(os.path.join('run', self.run_id, 'config', 'config.ini'))
         self.model = tf.keras.models.load_model(os.path.join('runs', self.run_id,
                                                              'models', 'LSTM',
                                                              '{}_LSTM.h5'.format(replace_multiple(self.feat_id,
@@ -53,11 +57,11 @@ class LstmModel(BaseModel):
                                                                                                    '|'],
                                                                                                   "x"))))
 
-    def predict(self, dataset):
-        start_idx = ((int(self.config['FORECAST_PARAMS']['PAST_HISTORY']) + int(
-            self.config['FORECAST_PARAMS']['FUTURE_TARGET'])) * 4) + int(
-            self.config['FORECAST_PARAMS']['PAST_HISTORY'])
-        end_idx = int(self.config['FORECAST_PARAMS']['PAST_HISTORY'])
+    def predict(self, dataset, start_idx, end_idx):
+        # start_idx = ((int(self.config['FORECAST_PARAMS']['PAST_HISTORY']) + int(
+        #     self.config['FORECAST_PARAMS']['FUTURE_TARGET'])) * 4) + int(
+        #     self.config['FORECAST_PARAMS']['PAST_HISTORY'])
+        # end_idx = int(self.config['FORECAST_PARAMS']['PAST_HISTORY'])
 
         n_input = dataset[-start_idx:-end_idx].values
         n_input = n_input.reshape(1, n_input.shape[0], n_input.shape[1])
@@ -74,6 +78,3 @@ class LstmModel(BaseModel):
                                                          history_size,
                                                          target_size)
         return x_train_multi, y_train_multi
-
-    def result(self, history, actual, prediction, forecast, df_aler, model_type):
-        pass

@@ -9,7 +9,7 @@ from feature import Feature
 
 def make_dirs(run_id):
     paths = ['temp', 'temp/%s' % run_id, 'temp/%s/models' % run_id, 'temp/%s/features' % run_id,
-             'temp/%s/config' % run_id, 'temp/%s/models/VAR' % run_id]
+             'temp/%s/config' % run_id, 'temp/%s/models/VAR' % run_id, 'temp/%s/models/KNN' % run_id]
     for p in paths:
         if not os.path.isdir(p):
             os.mkdir(p)
@@ -25,9 +25,7 @@ def create_config(run_id, config_dict):
                              'MIN_DELTA': 0.0003,
                              'DROPOUT': 0.03,
                              'STEP': 1}
-    config['FORECAST_PARAMS'] = {'PAST_HISTORY': config_dict['past_history'],
-                                 'FUTURE_TARGET': config_dict['future_target'],
-                                 'STEP_SIZE': config_dict['step_size']}
+    config['FORECAST_PARAMS'] = {'STEP_SIZE': config_dict['step_size']}
     with open(os.path.join('temp', run_id, 'config', 'config.ini'), 'w') as configfile:
         config.write(configfile)
 

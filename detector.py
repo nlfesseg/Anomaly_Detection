@@ -16,15 +16,15 @@ class Detector:
         self.selected_feature_ids = None
         self.features = []
         self.filename = filename
-        self.view_history = None
+
         self.config = configparser.ConfigParser()
         self.dataset = read_dataset(self.filename)
         self.dataset = proces_dataset(self.dataset)
 
-    def load(self, run_id, view_history):
+    def load(self, run_id):
         self.config.read(os.path.join('runs', run_id, 'config', 'config.ini'))
         self.sized_dataset = self.dataset.iloc[::int(self.config['FORECAST_PARAMS']['STEP_SIZE']), :]
-        self.view_history = view_history
+
         self.features = []
         filenames = get_feature_filenames(run_id)
         for file in filenames:
@@ -53,11 +53,11 @@ class Detector:
         move_run(run_id)
         return True
 
-    def predict(self):
+    def predict(self, view_history, past_history, future_target):
         results = []
         for feature_id in self.selected_feature_ids:
             feature = next((x for x in self.features if x.id == feature_id), None)
-            results.append(feature.predict(self.sized_dataset, self.view_history))
+            results.append(feature.predict(self.sized_dataset, view_history, past_history, future_target))
         return results
 
     def update(self):
