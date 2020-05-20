@@ -13,21 +13,21 @@ from transform import replace_multiple
 
 
 class VarModel(BaseModel):
-    def __init__(self, feat_id, run_id, dataset=None):
+    def __init__(self, feat_id, run_id, data=None):
         self.model_type = 'VAR'
-        self.optimal_p = 1
-        super().__init__(feat_id, run_id, dataset)
+        self.opt_p = 1
+        super().__init__(feat_id, run_id, data)
 
-    def train(self, dataset):
-        if len(dataset.columns) > 1:
-            self.model = VAR(dataset)
-            self.optimal_p = self.model.select_order(20).aic
+    def train(self, data):
+        if len(data.columns) > 1:
+            self.model = VAR(data)
+            self.opt_p = self.model.select_order(30).aic
         else:
-            self.model = AR(dataset)
-            self.optimal_p = self.model.select_order(20, 'aic')
+            self.model = AR(data)
+            self.opt_p = self.model.select_order(30, 'aic')
 
     def save(self):
-        joblib.dump(self.optimal_p,
+        joblib.dump(self.opt_p,
                     os.path.join('temp', self.run_id, 'models', 'VAR',
                                  '{}_VAR.pkl'.format(replace_multiple(self.feat_id,
                                                                       ['/', '\\',
@@ -38,7 +38,7 @@ class VarModel(BaseModel):
                                                                       "x"))))
 
     def load(self):
-        self.optimal_p = \
+        self.opt_p = \
             joblib.load(os.path.join('runs', self.run_id, 'models', 'VAR',
                                      '{}_VAR.pkl'.format(replace_multiple(self.feat_id,
                                                                           ['/', '\\',
@@ -48,31 +48,31 @@ class VarModel(BaseModel):
                                                                            '|'],
                                                                           "x"))))
 
-    def result(self, history, actual, prediction, forecast, df_aler):
+    def result(self, history, actual, prediction, forecast, anomaly_scores):
         mse = mean_squared_error(actual, prediction)
         mae = mean_absolute_error(actual, prediction)
         rmse = np.sqrt(mse)
 
-        df_aler['points'] = df_aler.index
+        anomaly_scores['points'] = anomaly_scores.index
 
-        df_aler = df_aler[df_aler['outlier'] == 1]
-        past_alert = df_aler[df_aler['points'] < len(history)]
-        future_alert = df_aler[df_aler['points'] >= len(history)]
+        future_alert = anomaly_scores.tail(len(forecast))
+        past_alert = anomaly_scores.iloc[:len(history)]
+        future_alert = future_alert[future_alert['outlier'] == -1]
+        past_alert = past_alert[past_alert['outlier'] == -1]
 
         output = {'history': history.tolist(), 'expected': prediction.tolist(), 'forecast': forecast.tolist(),
                   'rmse': rmse, 'mse': mse, 'mae': mae, 'future_alerts': future_alert.fillna(0).to_dict(orient='record'),
                   'past_alerts': past_alert.fillna(0).to_dict(orient='record'), 'model': self.model_type}
-        # var_output['future'] = df_result_forecast.fillna(0).to_dict(orient='record')
         return output
 
-    def predict(self, dataset, start_idx, end_idx):
-        if len(dataset.columns) > 1:
-            self.model = VAR(dataset)
-            result = self.model.fit(self.optimal_p)
-            prediction = self.model.predict(result.params, start=start_idx, end=end_idx, lags=self.optimal_p)
-            return pd.DataFrame(data=prediction, columns=dataset.columns.values)
+    def predict(self, data, start_idx, end_idx):
+        if len(data.columns) > 1:
+            self.model = VAR(data)
+            result = self.model.fit(self.opt_p)
+            y_pred = self.model.predict(result.params, start=start_idx, end=end_idx, lags=self.opt_p)
+            return pd.DataFrame(data=y_pred, columns=data.columns.values)
         else:
-            self.model = AR(dataset)
-            self.model = self.model.fit(self.optimal_p)
-            prediction = self.model.predict(start=start_idx, end=end_idx)
-            return pd.DataFrame(data=prediction, columns=dataset.columns.values)
+            self.model = AR(data)
+            self.model = self.model.fit(self.opt_p)
+            y_pred = self.model.predict(start=start_idx, end=end_idx)
+            return pd.DataFrame(data=y_pred, columns=data.columns.values)

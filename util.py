@@ -9,7 +9,7 @@ from feature import Feature
 
 def make_dirs(run_id):
     paths = ['temp', 'temp/%s' % run_id, 'temp/%s/models' % run_id, 'temp/%s/features' % run_id,
-             'temp/%s/config' % run_id, 'temp/%s/models/VAR' % run_id, 'temp/%s/models/KNN' % run_id]
+             'temp/%s/config' % run_id, 'temp/%s/models/VAR' % run_id, 'temp/%s/models/DBSCAN' % run_id]
     for p in paths:
         if not os.path.isdir(p):
             os.mkdir(p)
@@ -73,5 +73,5 @@ def read_config(run_id):
     return config_dict
 
 
-def read_dataset(filename):
+def read_data(filename):
     return pd.read_csv(os.path.join('data', filename))

@@ -23,19 +23,23 @@ $(document).ready(function () {
     });
 
     socket.on('modified_event_response', function () {
-        if ($("#InputViewHistory").val() === "") {
-            $("#InputViewHistory").val(0);
+        if ($("#InputViewHistory").val() === " "|| $("#InputViewHistory").val() < 2) {
+            $("#InputViewHistory").val(2);
         }
-        if ($("#InputPastHistory").val() === "" || $("#InputPastHistory").val() == 0) {
-            $("#InputPastHistory").val(1);
+        if ($("#InputPastHistory").val() === "" || $("#InputPastHistory").val() < 2) {
+            $("#InputPastHistory").val(2);
         }
-        if ($("#InputFutureTarget").val() === "" || $("#InputFutureTarget").val() == 0) {
-            $("#InputFutureTarget").val(1);
+        if ($("#InputFutureTarget").val() === "" || $("#InputFutureTarget").val() < 2) {
+            $("#InputFutureTarget").val(2);
+        }
+        if ($("#InputClusterHistory").val() === "" || $("#InputClusterHistory").val() < 2) {
+            $("#InputClusterHistory").val(2);
         }
         socket.emit('predict', {
             view_history: $("#InputViewHistory").val(),
             past_history: $("#InputPastHistory").val(),
-            future_target: $("#InputFutureTarget").val()
+            future_target: $("#InputFutureTarget").val(),
+            cluster_history: $("#InputClusterHistory").val()
         });
     });
 
@@ -287,6 +291,7 @@ $(document).ready(function () {
         $("#SelectRun").selectpicker('refresh');
 
         $("#InputPastHistory").prop('disabled', disable);
+        $("#InputClusterHistory").prop('disabled', disable);
         $("#InputViewHistory").prop('disabled', disable);
         $("#InputFutureTarget").prop('disabled', disable);
         $("#InputStepSize").prop('disabled', disable);

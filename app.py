@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -22,6 +23,7 @@ socketio = SocketIO(app, async_mode=async_mode)
 
 @socketio.on('connect')
 def connect():
+    session['mqttclient_connected'] = False
     emit('my_response', {'data': 'Connected!'})
 
 
@@ -40,6 +42,7 @@ def connect_mqttclient(args):
         time.sleep(1)
         if session['mqttclient'].is_connected():
             emit('mqtt_connection_success_response', {'data': 'MQTT: Client is connected!'})
+            session['mqttclient_connected'] = True
         else:
             emit('mqtt_connection_failed_response', {'data': 'MQTT: Bad connection! Invalid username or password'})
     except:
@@ -50,6 +53,7 @@ def connect_mqttclient(args):
 def disconnect_mqttclient():
     session['mqttclient'].loop_stop()
     session['mqttclient'].disconnect()
+    session['mqttclient_connected'] = False
     emit('mqtt_disconnect_response', {'data': 'MQTT: Client disconnected'})
 
 
@@ -63,6 +67,7 @@ def load_csv(args):
     filename = args['filename']
     # ToDO: raise error
     session['detector'] = Detector(filename)
+
     emit('csv_response')
 
 
@@ -84,7 +89,7 @@ def delete_run(args):
 
 @socketio.on('load_correlation_matrix')
 def load_correlation_matrix():
-    corr = abs(session['detector'].dataset.corr())
+    corr = abs(session['detector'].df.corr())
     emit('correlation_response', {'data': corr.values.tolist(), 'index': corr.index.values.tolist(),
                                   'columns': corr.columns.values.tolist()})
 
@@ -139,9 +144,11 @@ def run(args):
 @socketio.on('predict')
 def predict(args):
     if session['detector'].update():
-        results = session['detector'].predict(int(args['view_history']), int(args['past_history']),
-                                              int(args['future_target']))
+        results = session['detector'].predict(int(args['past_history']), int(args['future_target']),
+                                              int(args['view_history']), int(args['cluster_history']))
         emit('result_response', {'data': results}, room=request.sid)
+        if session['mqttclient_connected']:
+            session['mqttclient'].publish("result", "data")
 
 
 @socketio.on('disconnect')

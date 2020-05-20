@@ -5,17 +5,17 @@ from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.vector_ar.vecm import coint_johansen
 
 
-def multivariate_data(dataset, target, start_index, end_index, history_size,
+def multivariate_data(dataset, target, start_index, end_index, hist_size,
                       target_size, single_step=False):
     data = []
     labels = []
 
-    start_index = start_index + history_size
+    start_index = start_index + hist_size
     if end_index is None:
         end_index = len(dataset) - target_size
 
     for i in range(start_index, end_index):
-        indices = range(i - history_size, i, 1)
+        indices = range(i - hist_size, i, 1)
         data.append(dataset[indices])
 
         if single_step:
@@ -34,12 +34,12 @@ def replace_multiple(main_string, replaces, new_string):
     return main_string
 
 
-def proces_dataset(dataset):
-    dataset.drop(columns=['DateTime', 'Date Time'], inplace=True, errors='ignore')
-    dif_df = dataset.diff().dropna()
+def proces_data(data):
+    data.drop(columns=['DateTime', 'Date Time'], inplace=True, errors='ignore')
+    dif_df = data.diff().dropna()
     drop_cols = dif_df.columns[(dif_df == 0).sum() >= 0.98 * dif_df.shape[0]]
-    dataset.drop(drop_cols, axis=1, inplace=True)
-    return dataset
+    data.drop(drop_cols, axis=1, inplace=True)
+    return data
 
 
 def adfuller_test(series, signif=0.05, name='', verbose=False):
@@ -56,15 +56,15 @@ def adfuller_test(series, signif=0.05, name='', verbose=False):
         return False
 
 
-def invert_transformation(df_train, df_forecast, dif_times=1, index=-1):
+def invert_transformation(df, df_forecast, dif_times=1, index=-1):
     df_fc = df_forecast.copy()
-    columns = df_train.columns
+    columns = df.columns
     for col in columns:
-        # Roll back 2nd Diff
+        # 2nd Diff
         if dif_times == 2:
-            df_fc[col] = (df_train[col].iloc[index] - df_train[col].iloc[index - 1]) + df_fc[col].cumsum()
-        # Roll back 1st Diff
-        df_fc[col] = df_train[col].iloc[index] + df_fc[col].cumsum()
+            df_fc[col] = (df[col].iloc[index] - df[col].iloc[index - 1]) + df_fc[col].cumsum()
+        # 1st Diff
+        df_fc[col] = df[col].iloc[index] + df_fc[col].cumsum()
     return df_fc
 
 
@@ -76,7 +76,6 @@ def cointegration_test(df, alpha=0.05):
 
     def adjust(val, length=6): return str(val).ljust(length)
 
-    # Summary
     print('Name   ::  Test Stat > C(95%)    =>   Signif  \n', '--' * 20)
     for col, trace, cvt in zip(df.columns, traces, cvts):
         print(adjust(col), ':: ', adjust(round(trace, 2), 9), ">", adjust(cvt, 8), ' =>  ', trace > cvt)
@@ -99,24 +98,24 @@ def cointegration_test(df, alpha=0.05):
 #     return x
 
 
-def pearson(dataset, target_id):
-    cor = dataset.corr()
+def pearson(data, target_id):
+    cor = data.corr()
     cor_target = abs(cor[target_id])
-    correlated_features = cor_target[(cor_target > 0.5) & (cor_target < 0.99)]
-    correlated_features = correlated_features.sort_values(ascending=False)
-    relevant_features = [target_id]
-    while not correlated_features.empty:
-        x = correlated_features.iloc[1:].index  # Feature Matrix
-        y = correlated_features.index[0]
+    cor_feat = cor_target[(cor_target > 0.5) & (cor_target < 0.99)]
+    cor_feat = cor_feat.sort_values(ascending=False)
+    relevant_feat = [target_id]
+    while not cor_feat.empty:
+        x = cor_feat.iloc[1:].index  # Feature Matrix
+        y = cor_feat.index[0]
 
-        correlated_features = correlated_features.drop([y])
-        relevant_features.append(y)
+        cor_feat = cor_feat.drop([y])
+        relevant_feat.append(y)
 
         for feature in x:
-            y_cor = dataset[[y, feature]].corr()
+            y_cor = data[[y, feature]].corr()
             y_cor_target = abs(y_cor[y])
-            y_correlated_features = y_cor_target[y_cor_target > 0.5].index[1]
-            correlated_features = correlated_features.drop([y_correlated_features])
-    return relevant_features
+            y_cor_feat = y_cor_target[y_cor_target > 0.5].index[1]
+            cor_feat = cor_feat.drop([y_cor_feat])
+    return relevant_feat
 
 
