@@ -9,7 +9,7 @@ kiwisolver==1.2.0
 kneed==0.6.0
 MarkupSafe==1.1.1
 matplotlib==3.2.1
-numpy==1.18.4
+numpy==1.22.0
 paho-mqtt==1.5.0
 pandas==1.0.3
 pathtools==0.1.2
